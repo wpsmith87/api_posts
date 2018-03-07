@@ -101,3 +101,52 @@ def delete_post(id):
     data = json.dumps({"message": message})
     return Response(data, 200, mimetype="application/json")
 
+@app.route("/api/posts/<int:id>", methods=["PUT"])
+@decorators.accept("application/json")
+@decorators.require("application/json")
+def posts_put(id):
+    """ Edit a post """
+    data = request.json
+    
+    #check that the supplied JSON is valid and then if it
+    #isn't return a 422 Unprocessable Entity error
+    try:
+        validate(data, post_schema)
+    except ValidationError as error:
+        data = {"message": error.message}
+        return Response(json.dumps(data), 422, mimetype="application/json")
+    
+    #commit the edited post to the database
+    title = data["title"]
+    body = data["body"]
+    post = session.query(models.Post).get(id)
+    
+    post.title = title
+    post.body = body
+    session.commit()
+    
+    data = json.dumps(post.as_dictionary())
+    headers = {"Location": url_for("post_get", id=post.id)}
+    return Response(data, 201, headers=headers,
+                    mimetype="application/json")
+    
+@app.route("/api/post/<int:id>", methods=["PUT"])
+@decorators.accept("application/json")
+def post_update(id):
+    """ Update Post """ 
+    data = request.json
+    # Get the post from the database
+    post = session.query(models.Post).get(id)
+
+    if not post:
+        message = "Could not find post with id {}".format(id)
+        data = json.dumps({"message": message})
+        return Response(data, 404, mimetype="application/json")
+    else:
+      data["id"] = id
+      post.title = data["title"]
+      post.body = data["body"]
+      session.commit()
+      headers = {"Location": url_for("post_get", id=id)}
+      return Response(data, 201, headers=headers,
+                    mimetype="application/json")    

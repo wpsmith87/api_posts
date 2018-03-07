@@ -241,7 +241,36 @@ class TestAPI(unittest.TestCase):
 
         data = json.loads(response.data.decode("ascii"))
         self.assertEqual(data["message"], "'body' is a required property")
-    
+
+    def test_put(self):
+        """ Updating a post via put """
+        
+        postA = models.Post(title="Post with bells", body="Just a whistle test")
+        session.add_all([postA])
+        session.commit()
+        
+        data = {
+            "title": "Post with a whistle",
+            "body": "Just a whistle test"
+        }
+
+        response = self.client.put("/api/post/{}".format(postA.id),
+            data=json.dumps(data),
+            content_type="application/json",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 201)
+
+        self.assertEqual(data["title"], "Post with a whistle")
+        self.assertEqual(data["body"], "Just a whistle test")
+
+        posts = session.query(models.Post).all()
+        self.assertEqual(len(posts), 1)
+
+        post = posts[0]
+        self.assertEqual(post.title, "Post with a whistle")
+        self.assertEqual(post.body, "Just a whistle test")
     
        
 
